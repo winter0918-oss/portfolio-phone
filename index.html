@@ -496,8 +496,14 @@ async function loadAll(silent){
   if(dirty()&&!silent&&!confirm('저장하지 않은 수정이 있습니다. 버리고 새로 불러올까요?'))return;
   document.getElementById('subline').textContent='불러오는 중…';
   try{
-    const [main,qs,sg]=await Promise.all([ghGet('app_data.json'),ghGet('quotes.json').catch(()=>({data:null})),ghGet('last_signals.json').catch(()=>({data:null}))]);
-    if(!main.data)throw new Error('저장소에 app_data.json이 없습니다');
+    let main=await ghGet('app_data.json');
+    if(!main.data){   // 저장소 이름이 틀렸으면 토큰 주인 계정의 portfolio-data 로 자동 연결
+      try{const u=await fetch('https://api.github.com/user',{headers:{'Authorization':'Bearer '+c.tok}});
+        if(u.ok){const login=(await u.json()).login,r=login+'/portfolio-data';
+          if(r!==cfg().repo){lsSet(LS.repo,r);main=await ghGet('app_data.json');}}}catch(e){}
+    }
+    if(!main.data)throw new Error('저장소('+cfg().repo+')에서 데이터를 찾지 못했습니다');
+    const [qs,sg]=await Promise.all([ghGet('quotes.json').catch(()=>({data:null})),ghGet('last_signals.json').catch(()=>({data:null}))]);
     SHA=main.sha;D=main.data;D.quotes=D.quotes||{};D.fx=D.fx||{};D.accounts=D.accounts||{};D.assets=D.assets||{};
     BASE=userPart(D);Q=qs.data||{quotes:{},fx:{}};SIG=sg.data;
     document.getElementById('setup').style.display='none';document.getElementById('main').style.display='block';
