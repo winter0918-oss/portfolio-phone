@@ -334,15 +334,15 @@ function renderDca(){
   if(!plan){
     const sp=splitFor(m);
     h+='<div class="fld" style="margin:6px 0 10px"><label>이번 달 투자 가능 총액 (원)</label><input inputmode="numeric" id="dcaTotal" value="'+(c.last_total?fmt(c.last_total):'')+'" placeholder="예: 10,000,000"></div>'+
-      '<div class="cashline" style="margin-bottom:6px"><span>계좌 분배 (고정 금액을 먼저 떼고 나머지를 %로)</span><span class="r"><button class="ghost sm" id="dcaDef">현재 규모 비율로</button></span></div>';
+      '<div class="cashline" style="margin-bottom:6px"><span>계좌 분배</span><span class="r"><button class="ghost sm" id="dcaDef">규모 비율로</button></span></div>';
     for(const x of dcaAccounts(m)){
       h+='<div class="cashline"><span style="flex:1">'+esc(x.name)+(isUsdAcct(x.name)?' <span class="badge" style="background:#1d4ed8">USD</span>':'')+'</span>'+
         (x.paused?'<span class="r dim">매수보류 ~'+esc(((D.goals||{}).house||{}).buy_pause_until||'')+'</span>':
-        fixedOf(x.name)!=null?'<span class="dim" style="font-size:11px">고정 원</span><input inputmode="numeric" class="dcaFix" data-n="'+esc(x.name)+'" value="'+fmt(fixedOf(x.name))+'" style="width:120px">':
-        '<input inputmode="decimal" class="dcaSp" data-n="'+esc(x.name)+'" value="'+(sp[x.name]||0)+'" style="width:80px">')+'</div>';
+        fixedOf(x.name)!=null?'<span class="dim" style="font-size:11px">고정</span><input inputmode="numeric" class="dcaFix" data-n="'+esc(x.name)+'" value="'+fmt(fixedOf(x.name))+'" style="width:120px"><span class="dim" style="font-size:12px;width:14px">원</span>':
+        '<input inputmode="decimal" class="dcaSp" data-n="'+esc(x.name)+'" value="'+(sp[x.name]||0)+'" style="width:80px"><span class="dim" style="font-size:12px;width:14px">%</span>')+'</div>';
     }
     h+='<div style="margin-top:10px"><button id="dcaGo" style="width:100%">분배 계산</button></div>'+
-      '<div class="dim" style="font-size:11px;margin-top:6px;line-height:1.5">계좌 안에서는 목표비중보다 모자란 종목부터 채우고, 남으면 목표비중대로 나눕니다. 홀드·목표 0% 종목은 제외.</div></div>';
+      '<div class="dim" style="font-size:11px;margin-top:6px;line-height:1.5">고정 금액을 먼저 떼고 나머지를 %로 나눕니다. 계좌 안에서는 목표비중보다 모자란 종목부터 채웁니다. 홀드·목표 0% 종목은 제외.</div></div>';
     el.innerHTML=h;bindDca();return;
   }
   // 계획 있음 → 체크리스트
@@ -505,7 +505,7 @@ async function loadAll(silent){
     if(!main.data)throw new Error('저장소('+cfg().repo+')에서 데이터를 찾지 못했습니다');
     const [qs,sg]=await Promise.all([ghGet('quotes.json').catch(()=>({data:null})),ghGet('last_signals.json').catch(()=>({data:null}))]);
     SHA=main.sha;D=main.data;D.quotes=D.quotes||{};D.fx=D.fx||{};D.accounts=D.accounts||{};D.assets=D.assets||{};
-    BASE=userPart(D);Q=qs.data||{quotes:{},fx:{}};SIG=sg.data;
+    DCA();BASE=userPart(D);Q=qs.data||{quotes:{},fx:{}};SIG=sg.data;
     document.getElementById('setup').style.display='none';document.getElementById('main').style.display='block';
     render();await pullLive();render();
   }catch(e){
