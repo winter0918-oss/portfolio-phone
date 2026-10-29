@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="포트폴리오">
+<meta name="theme-color" content="#0f1117">
+<meta name="referrer" content="no-referrer">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>포트폴리오</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0f1117;color:#e5e7eb;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  padding:14px 14px 110px;padding-top:calc(14px + env(safe-area-inset-top));max-width:640px;margin:0 auto;font-size:14px}
+h1{font-size:18px;display:flex;align-items:center;gap:8px}
+h1 .sp{flex:1}
+.sub{color:#9ca3af;font-size:12px;margin:3px 0 12px;line-height:1.5}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.card{background:#1a1d27;border:1px solid #2a2e3d;border-radius:12px;padding:10px 12px}
+.card .k{color:#9ca3af;font-size:11px;margin-bottom:2px}
+.card .v{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+.card .s{font-size:11px;color:#9ca3af;margin-top:1px}
+button{background:#2563eb;color:#fff;border:0;border-radius:9px;padding:9px 14px;font-size:14px;font-weight:600}
+button.ghost{background:#232736;border:1px solid #3a3f52;color:#d1d5db}
+button.sm{padding:5px 10px;font-size:12px}
+button:disabled{opacity:.5}
+.box{background:#1a1d27;border:1px solid #2a2e3d;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.box.alert{border-left:4px solid #ea580c}
+.box.house{border-left:4px solid #f59e0b}
+.box.dca{border-left:4px solid #3b82f6}
+.box h3{font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.msg{font-size:13px;line-height:1.55;margin:3px 0}
+.acct h3 .tot{margin-left:auto;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.acct h3{align-items:baseline}
+.acct h3 .an{white-space:nowrap}
+.acct h3 .anote{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct h3 .tot{white-space:nowrap}
+.anote{color:#6b7280;font-size:11px;font-weight:400}
+.cashline{display:flex;align-items:center;gap:8px;font-size:12px;color:#9ca3af;margin-bottom:4px}
+.cashline .r{margin-left:auto}
+.hold{border-top:1px solid #232736;padding:9px 0}
+.hold .r1{display:flex;align-items:baseline;gap:6px}
+.hold .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58%}
+.hold .val{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+.hold .r2{display:flex;gap:6px;align-items:center;font-size:12px;color:#9ca3af;margin-top:3px;font-variant-numeric:tabular-nums}
+.hold .r2 .pl{margin-left:auto}
+.bar{height:5px;background:#232736;border-radius:3px;margin-top:6px;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:#3b82f6;border-radius:3px}
+.bar i.full{background:#8b5cf6}
+.badge{display:inline-block;color:#fff;border-radius:5px;padding:1px 6px;font-size:10.5px;font-weight:600}
+.edit{display:none;gap:8px;flex-wrap:wrap;margin-top:8px}
+.hold.open .edit{display:flex}
+.fld{display:flex;flex-direction:column;gap:2px;flex:1;min-width:90px}
+.fld label{font-size:10.5px;color:#6b7280}
+input{background:#232736;border:1px solid #3a3f52;color:#e5e7eb;border-radius:8px;padding:8px 9px;
+  font-size:16px;text-align:right;width:100%;font-variant-numeric:tabular-nums}
+input.txt{text-align:left}
+input:focus{outline:1px solid #3b82f6}
+input.chg{border-color:#f59e0b}
+.pos{color:#4ade80}.neg{color:#f87171}.dim{color:#6b7280}.amber{color:#fbbf24}
+.prog{height:8px;background:#232736;border-radius:4px;overflow:hidden;margin:6px 0 2px}
+.prog i{display:block;height:100%;background:#f59e0b}
+#savebar{position:fixed;left:0;right:0;bottom:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(transparent,#0f1117 28%);display:none;justify-content:center}
+#savebar.on{display:flex}
+#savebar .in{display:flex;gap:8px;align-items:center;width:100%;max-width:640px}
+#savebar .in span{flex:1;font-size:12px;color:#fbbf24}
+#toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);background:#232736;
+  border:1px solid #3a3f52;border-radius:10px;padding:9px 14px;font-size:13px;display:none;z-index:20;max-width:92vw}
+#setup{display:none}
+#setup p{font-size:13px;line-height:1.6;color:#d1d5db;margin-bottom:10px}
+#setup .fld{margin-bottom:10px}
+.foot{color:#6b7280;font-size:11px;line-height:1.6;margin-top:16px;text-align:center}
+.foot a{color:#9ca3af}
+</style>
+</head>
+<body>
+<h1>포트폴리오<span class="sp"></span><button class="ghost sm" id="btnReload">새로고침</button></h1>
+<p class="sub" id="subline">불러오는 중…</p>
+
+<div id="setup" class="box">
+  <h3>처음 한 번만 설정</h3>
+  <p>깃허브 토큰을 넣으면 이 휴대폰에만 저장됩니다. PC 앱과 같은 원본 데이터를 읽고 씁니다.<br>
+  PC에서 <b>deploy_github.bat</b>을 실행하면 나오는 QR을 찍으면 자동으로 채워집니다.</p>
+  <div class="fld"><label>저장소 (소유자/이름)</label><input class="txt" id="inRepo" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+  <div class="fld"><label>깃허브 토큰 (github_pat_…)</label><input class="txt" id="inTok" type="password" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+  <button id="btnSetup">저장하고 시작</button>
+</div>
+
+<div id="main" style="display:none">
+  <div class="cards">
+    <div class="card"><div class="k">총자산</div><div class="v" id="cTotal">-</div><div class="s" id="cTotalS"></div></div>
+    <div class="card"><div class="k">평가손익</div><div class="v" id="cPnl">-</div><div class="s" id="cPnlS"></div></div>
+    <div class="card"><div class="k">현금 비중 (방어선 20%)</div><div class="v" id="cCash">-</div><div class="s" id="cCashS"></div></div>
+    <div class="card"><div class="k">USD/KRW</div><div class="v" id="cFx">-</div><div class="s" id="cFxS"></div></div>
+  </div>
+  <div id="alerts"></div>
+  <div id="house"></div>
+  <div id="dca"></div>
+  <div id="accts"></div>
+  <p class="foot">종목을 눌러 수량·매입금액·목표%를 고칩니다. 종목 추가는 PC 앱에서.<br>
+    알림까지만 — 주문은 직접.<br><a href="#" id="lnkReset">토큰·저장소 다시 설정</a></p>
+</div>
+
+<div id="savebar"><div class="in"><span id="dirtyMsg">수정됨 — 저장 전</span>
+  <button class="ghost" id="btnUndo">되돌리기</button><button id="btnSave">저장</button></div></div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+// ── 설정 ──
+const DEFAULT_REPO='Cheong-ah-pediatric/portfolio-alert';
+const LS={tok:'pf_token',repo:'pf_repo'};
+function lsGet(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
+function lsSet(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}
+// QR(#t=토큰&r=저장소)로 들어오면 저장하고 주소에서 지움
+(function(){
+  if(!location.hash||location.hash.length<3)return;
+  const p=new URLSearchParams(location.hash.slice(1));
+  if(p.get('t')){lsSet(LS.tok,p.get('t'));if(p.get('r'))lsSet(LS.repo,p.get('r'));}
+  history.replaceState(null,'',location.pathname+location.search);
+})();
+const cfg=()=>({tok:lsGet(LS.tok),repo:lsGet(LS.repo)||DEFAULT_REPO});
+
+// ── 깃허브 ──
+function b64dec(s){const bin=atob(s.replace(/\s/g,''));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new TextDecoder().decode(u);}
+function b64enc(str){const u=new TextEncoder().encode(str);let bin='';for(let i=0;i<u.length;i+=0x8000)bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(bin);}
+async function gh(path,opt={}){
+  const c=cfg();
+  const r=await fetch('https://api.github.com/repos/'+c.repo+'/contents/'+path+(opt.method?'':'?ref=main&_='+Date.now()),{
+    method:opt.method||'GET',cache:'no-store',
+    headers:{'Authorization':'Bearer '+c.tok,'Accept':'application/vnd.github+json'},
+    body:opt.body?JSON.stringify(opt.body):undefined});
+  return r;
+}
+async function ghGet(path){
+  const r=await gh(path);
+  if(r.status===404)return {sha:null,data:null};
+  if(r.status===401)throw new Error('토큰이 맞지 않습니다 (401)');
+  if(r.status===403)throw new Error('접근 거부 (403) — 토큰 권한 확인');
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const j=await r.json();
+  return {sha:j.sha,data:JSON.parse(b64dec(j.content||''))};
+}
+async function ghPut(path,obj,sha,msg){
+  const body={message:msg,branch:'main',content:b64enc(JSON.stringify(obj,null,2))};
+  if(sha)body.sha=sha;
+  const r=await gh(path,{method:'PUT',body});
+  let j={};try{j=await r.json()}catch(e){}
+  return {status:r.status,sha:(j.content||{}).sha};
+}
+
+// ── 상태 ──
+let BASE=null,SHA=null,D=null,Q={quotes:{},fx:{}},SIG=null,LIVE={},OPEN=new Set();
+const SECRET=['telegram','github'],LIVEK=['quotes','fx'];
+const clone=o=>JSON.parse(JSON.stringify(o));
+function userPart(d){const o={};for(const k in d)if(!SECRET.includes(k)&&!LIVEK.includes(k))o[k]=d[k];return clone(o);}
+const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const MISSING={};
+// 3-way 병합: 한쪽만 바뀐 값은 바뀐 쪽, 둘 다 바뀌면 이 기기 우선 (PC 앱과 같은 규칙)
+function merge3(base,local,remote){
+  if(eq(local,remote))return local;
+  if(eq(local,base))return remote;
+  if(eq(remote,base))return local;
+  const isObj=x=>x&&typeof x==='object'&&!Array.isArray(x)&&x!==MISSING;
+  if(isObj(local)&&isObj(remote)){
+    const b=isObj(base)?base:{},out={};
+    for(const k of new Set([...Object.keys(remote),...Object.keys(local)])){
+      const v=merge3(k in b?b[k]:MISSING,k in local?local[k]:MISSING,k in remote?remote[k]:MISSING);
+      if(v!==MISSING)out[k]=v;
+    }
+    return out;
+  }
+  return local;
+}
+const nHold=d=>Object.values((d&&d.accounts)||{}).reduce((s,a)=>s+Object.keys(a.holdings||{}).length,0);
+const dirty=()=>D&&BASE&&!eq(userPart(D),BASE);
+
+// ── 숫자 ──
+const fmt=n=>Math.round(n).toLocaleString('ko-KR');
+function won(n){if(n==null||!isFinite(n))return '-';const a=Math.abs(n),s=n<0?'-':'';
+  if(a>=1e8)return s+(a/1e8).toFixed(2)+'억';if(a>=1e4)return s+fmt(a/1e4)+'만';return s+fmt(a)+'원';}
+const pct=(x,d=1)=>(x>=0?'+':'')+(x*100).toFixed(d)+'%';
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(t,ms=2600){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',ms);}
+
+// ── 시세 ──
+function quote(id){
+  const l=LIVE[id];if(l)return l;
+  const a=(Q.quotes||{})[id],b=(D.quotes||{})[id];
+  if(a&&b)return (a.at||'')>=(b.at||'')?a:b;
+  return a||b||null;
+}
+function fx(){const a=Q.fx||{},b=D.fx||{};return +(((a.at||'')>=(b.at||'')?a:b).USDKRW||b.USDKRW||a.USDKRW)||1400;}
+const isUS=id=>((D.assets[id]||{}).market==='US');
+function valKRW(id,h){const q=quote(id);if(!q||!isFinite(q.price))return null;return (h.qty||0)*q.price*(isUS(id)?fx():1);}
+function costKRW(id,h){return (h.cost||0)*(isUS(id)?fx():1);}
+function acctTotal(a){let v=+a.cash||0;for(const[id,h]of Object.entries(a.holdings||{}))v+=valKRW(id,h)||0;return v;}
+async function pullLive(){
+  const ids=Object.entries(D.assets||{}).filter(([,a])=>a.market==='CRYPTO').map(([id,a])=>[id,a.ticker]);
+  if(!ids.length)return;
+  try{
+    const r=await fetch('https://api.upbit.com/v1/ticker?markets='+ids.map(x=>x[1]).join(','),{cache:'no-store'});
+    const j=await r.json();const now=new Date();
+    const at=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+now.toTimeString().slice(0,5);
+    for(const t of j){const id=(ids.find(x=>x[1]===t.market)||[])[0];if(id)LIVE[id]={price:t.trade_price,at,live:true,chg:t.signed_change_rate};}
+  }catch(e){}
+}
+
+// ── 화면 ──
+function render(){
+  const f=fx();let tot=0,cash=0,val=0,cost=0,miss=0;
+  for(const a of Object.values(D.accounts)){
+    cash+=+a.cash||0;
+    for(const[id,h]of Object.entries(a.holdings||{})){const v=valKRW(id,h);if(v==null){miss++;continue;}val+=v;cost+=costKRW(id,h);}
+  }
+  tot=val+cash;
+  document.getElementById('cTotal').textContent=won(tot);
+  document.getElementById('cTotalS').textContent='투자 '+won(val)+(miss?' · 시세없음 '+miss:'');
+  const pnl=val-cost,pe=document.getElementById('cPnl');
+  pe.textContent=(pnl>=0?'+':'')+won(pnl);pe.className='v '+(pnl>=0?'pos':'neg');
+  document.getElementById('cPnlS').textContent=cost?pct(pnl/cost):'';
+  const cr=tot?cash/tot:0,ce=document.getElementById('cCash');
+  ce.textContent=(cr*100).toFixed(1)+'%';ce.className='v '+(cr<0.2?'amber':'');
+  document.getElementById('cCashS').textContent='현금 '+won(cash);
+  document.getElementById('cFx').textContent=f.toLocaleString('ko-KR',{maximumFractionDigits:1});
+  document.getElementById('cFxS').textContent=(Q.fx||{}).at||(D.fx||{}).at||'';
+  const qat=Object.values(D.assets||{}).length?Object.keys(D.assets).map(id=>((quote(id)||{}).at)||'').filter(x=>x).sort().pop()||'':'';
+  document.getElementById('subline').innerHTML='시세 '+esc(qat||'미조회')+' 기준'+(Object.keys(LIVE).length?' · 코인 실시간':'')+
+    '<br>신호 점검 '+esc((SIG&&SIG.checked_at)||'-');
+  renderAlerts();renderHouse(tot);renderDca();renderAccts();
+  document.getElementById('savebar').classList.toggle('on',!!dirty());
+}
+function sigMap(){
+  const m={};
+  for(const e of ((SIG&&SIG.entries)||[])){
+    if(e.kind!=='holding')continue;const arr=[];
+    if(e.chosen)arr.push([e.chosen+(e.order>0?' '+won(e.order):''),e.order>0?'#16a34a':'#374151']);
+    if(e.sell)arr.push([e.sell.code==='REDUCE'?'축소':'경고',e.sell.code==='REDUCE'?'#a16207':'#ea580c']);
+    if(arr.length)m[e.account+':'+e.id]=arr;
+  }
+  return m;
+}
+function renderAlerts(){
+  const el=document.getElementById('alerts'),f=(SIG&&SIG.fired)||[];
+  el.innerHTML=f.length?'<div class="box alert"><h3>마지막 점검 알림 <span class="anote">'+esc(SIG.checked_at)+'</span></h3>'+
+    f.map(x=>'<div class="msg">• '+esc(x)+'</div>').join('')+'</div>':'';
+}
+function renderHouse(){
+  const h=(D.goals||{}).house,el=document.getElementById('house');
+  if(!h){el.innerHTML='';return;}
+  const t=+h.target_krw||0,v=+h.cma_balance||0,p=t?Math.min(v/t,1):0;
+  let dd='';
+  if(h.buy_pause_until){const ms=new Date(h.buy_pause_until)-new Date();const n=Math.ceil(ms/864e5);if(n>0)dd=' · 매수 보류 D-'+n;}
+  el.innerHTML='<div class="box house"><h3>집 자금 (CMA)<span class="anote">'+esc(h.window||'')+dd+'</span></h3>'+
+    '<div class="prog"><i style="width:'+(p*100).toFixed(1)+'%"></i></div>'+
+    '<div class="cashline"><span>'+won(v)+' / '+won(t)+' ('+(p*100).toFixed(0)+'%)</span></div>'+
+    '<div class="fld" style="max-width:220px"><label>CMA 잔고 (원)</label><input inputmode="numeric" id="inCma" value="'+fmt(v)+'"></div></div>';
+  const inp=document.getElementById('inCma');
+  inp.onchange=()=>{h.cma_balance=num(inp.value);soft(inp);};
+}
+function ym(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function renderDca(){
+  const c=D.dca,el=document.getElementById('dca');
+  if(!c||!c.account){el.innerHTML='';return;}
+  const m=ym(),done=(c.done||[]).includes(m),active=!c.active_from||m>=c.active_from;
+  el.innerHTML='<div class="box dca"><h3>월 적립 · '+esc(c.account)+'<span class="anote">월 '+won(+c.monthly_krw||0)+' · '+(c.split_days||1)+'회 분할</span></h3>'+
+    (active?'<div class="cashline"><span>'+m+' '+(done?'<b class="pos">완료</b>':'<b class="amber">미완료</b>')+'</span><span class="r"><button class="ghost sm" id="btnDca">'+(done?'완료 취소':'이번 달 완료 체크')+'</button></span></div>'
+      :'<div class="cashline"><span>⏳ '+esc(c.active_from)+'부터 시작</span></div>')+'</div>';
+  const b=document.getElementById('btnDca');
+  if(b)b.onclick=()=>{const s=new Set(c.done||[]);done?s.delete(m):s.add(m);c.done=[...s].sort();render();};
+}
+// 입력 중에는 화면을 다시 그리지 않음 (아이폰에서 다음 칸을 누를 때 키보드가 닫히는 것 방지)
+function soft(inp){
+  if(inp)inp.classList.add('chg');
+  document.getElementById('savebar').classList.toggle('on',!!dirty());
+  clearTimeout(soft._t);
+  soft._t=setTimeout(()=>{const a=document.activeElement;if(!a||a.tagName!=='INPUT')render();},250);
+}
+document.addEventListener('focusout',()=>{clearTimeout(soft._t);soft._t=setTimeout(()=>{const a=document.activeElement;if(dirty()&&(!a||a.tagName!=='INPUT'))render();},250);});
+function num(s){const v=parseFloat(String(s).replace(/[^\d.\-]/g,''));return isFinite(v)?v:0;}
+function renderAccts(){
+  const root=document.getElementById('accts'),sm=sigMap(),bh=(BASE&&BASE.accounts)||{};
+  const pause=((D.goals||{}).house||{});
+  root.innerHTML='';
+  for(const[name,a]of Object.entries(D.accounts)){
+    const at=acctTotal(a),cr=at?(+a.cash||0)/at:0;
+    const div=document.createElement('div');div.className='box acct';
+    let hh='';
+    for(const[id,h]of Object.entries(a.holdings||{})){
+      const as=D.assets[id]||{name:id,market:'KR'},q=quote(id),v=valKRW(id,h),c=costKRW(id,h);
+      const w=at&&v!=null?v/at:0,tg=+h.target||0,fill=tg?Math.min(w/tg,1):0;
+      const pl=v!=null&&c?(v-c)/c:null;
+      const badges=(sm[name+':'+id]||[]).map(([t,col])=>'<span class="badge" style="background:'+col+'">'+esc(t)+'</span>').join(' ');
+      const bhh=((bh[name]||{}).holdings||{})[id]||{};
+      const ch=k=>bhh[k]!==h[k]?' chg':'';
+      const cur=as.market==='US'?'$':'₩';
+      const px=q?(as.market==='US'?'$'+q.price.toLocaleString('en-US',{maximumFractionDigits:2}):fmt(q.price)+'원')+(q.live?' ●':''):'시세없음';
+      hh+='<div class="hold'+(OPEN.has(name+':'+id)?' open':'')+'" data-k="'+esc(name+':'+id)+'">'+
+        '<div class="r1"><span class="nm">'+esc(as.name)+'</span>'+(h.hold?'<span class="badge" style="background:#4b5563">홀드</span>':'')+
+          '<span class="val">'+(v!=null?won(v):'-')+'</span></div>'+
+        '<div class="r2"><span>'+esc(px)+' · '+(+h.qty||0).toLocaleString('ko-KR',{maximumFractionDigits:6})+'주</span>'+
+          '<span class="pl '+(pl==null?'dim':pl>=0?'pos':'neg')+'">'+(pl==null?'':pct(pl))+'</span></div>'+
+        '<div class="r2"><span>비중 '+(w*100).toFixed(1)+'% / 목표 '+(tg*100).toFixed(0)+'%</span><span class="pl">'+badges+'</span></div>'+
+        '<div class="bar"><i class="'+(fill>=1?'full':'')+'" style="width:'+(fill*100).toFixed(1)+'%"></i></div>'+
+        '<div class="edit">'+
+          '<div class="fld"><label>수량</label><input inputmode="decimal" data-f="qty" class="'+ch('qty')+'" value="'+(+h.qty||0)+'"></div>'+
+          '<div class="fld"><label>매입금액 ('+cur+')</label><input inputmode="decimal" data-f="cost" class="'+ch('cost')+'" value="'+(as.market==='US'?(+h.cost||0).toFixed(2):fmt(+h.cost||0))+'"></div>'+
+          '<div class="fld" style="max-width:90px"><label>목표 %</label><input inputmode="decimal" data-f="target" class="'+ch('target')+'" value="'+(tg*100).toFixed(1).replace(/\.0$/,'')+'"></div>'+
+        '</div></div>';
+    }
+    const paused=pause.buy_pause_until&&new Date()<new Date(pause.buy_pause_until)&&!(pause.buy_pause_except||[]).includes(name);
+    const cashChg=bh[name]&&bh[name].cash!==a.cash?' chg':'';
+    div.innerHTML='<h3><span class="an">'+esc(name)+'</span><span class="anote">'+esc(a.note||'')+(paused?' · 매수보류':'')+'</span><span class="tot">'+won(at)+'</span></h3>'+
+      '<div class="cashline"><span>'+esc(a.cash_label||'현금')+'</span><span class="r '+(cr<0.2?'amber':'')+'">현금 '+(cr*100).toFixed(1)+'%</span></div>'+
+      '<div class="fld" style="margin-bottom:4px"><input inputmode="numeric" class="cash'+cashChg+'" value="'+fmt(+a.cash||0)+'"></div>'+hh;
+    div.querySelector('input.cash').onchange=e=>{a.cash=num(e.target.value);soft(e.target);};
+    for(const el of div.querySelectorAll('.hold')){
+      const k=el.dataset.k,id=k.slice(name.length+1),h=a.holdings[id];
+      el.querySelector('.r1').onclick=()=>{OPEN.has(k)?OPEN.delete(k):OPEN.add(k);el.classList.toggle('open');};
+      for(const inp of el.querySelectorAll('input')){
+        inp.onchange=()=>{const f=inp.dataset.f,v=num(inp.value);
+          h[f]=f==='target'?Math.max(0,Math.min(1,v/100)):v;soft(inp);};
+      }
+    }
+    root.appendChild(div);
+  }
+}
+
+// ── 불러오기 / 저장 ──
+async function loadAll(silent){
+  const c=cfg();
+  if(!c.tok){showSetup();return;}
+  if(dirty()&&!silent&&!confirm('저장하지 않은 수정이 있습니다. 버리고 새로 불러올까요?'))return;
+  document.getElementById('subline').textContent='불러오는 중…';
+  try{
+    const [main,qs,sg]=await Promise.all([ghGet('app_data.json'),ghGet('quotes.json').catch(()=>({data:null})),ghGet('last_signals.json').catch(()=>({data:null}))]);
+    if(!main.data)throw new Error('저장소에 app_data.json이 없습니다');
+    SHA=main.sha;D=main.data;D.quotes=D.quotes||{};D.fx=D.fx||{};D.accounts=D.accounts||{};D.assets=D.assets||{};
+    BASE=userPart(D);Q=qs.data||{quotes:{},fx:{}};SIG=sg.data;
+    document.getElementById('setup').style.display='none';document.getElementById('main').style.display='block';
+    render();await pullLive();render();
+  }catch(e){
+    document.getElementById('subline').innerHTML='<span class="neg">불러오기 실패: '+esc(e.message)+'</span>';
+    if(/401|403/.test(e.message))showSetup();
+  }
+}
+async function save(){
+  const btn=document.getElementById('btnSave');btn.disabled=true;
+  try{
+    let local=userPart(D);
+    if(nHold(local)===0){toast('보유종목이 0개라 저장하지 않습니다 (안전장치)');return;}
+    let sha=SHA,base=BASE;
+    for(let i=0;i<3;i++){
+      const r=await ghPut('app_data.json',local,sha,'phone save '+new Date().toLocaleString('ko-KR'));
+      if(r.status===200||r.status===201){
+        SHA=r.sha;BASE=clone(local);
+        for(const k in local)D[k]=clone(local[k]);
+        for(const k of Object.keys(D))if(!(k in local)&&!LIVEK.includes(k))delete D[k];
+        toast(i?'다른 기기 수정분과 합쳐서 저장했습니다':'저장했습니다 — PC 앱에도 반영됩니다');render();return;
+      }
+      if(r.status===409||r.status===422){         // 그사이 PC 등에서 바뀜 → 받아서 병합 후 재시도
+        const rem=await ghGet('app_data.json');
+        const ru=userPart(rem.data||{});
+        local=merge3(base,local,ru);sha=rem.sha;base=ru;
+        if(nHold(local)===0){toast('병합 결과가 비어 저장 중단');return;}
+        continue;
+      }
+      throw new Error('HTTP '+r.status+(r.status===403?' — 토큰에 쓰기 권한이 없습니다':''));
+    }
+    throw new Error('충돌이 계속됩니다. 새로고침 후 다시 시도하세요');
+  }catch(e){toast('저장 실패: '+e.message,5000);}
+  finally{btn.disabled=false;}
+}
+function showSetup(){
+  document.getElementById('main').style.display='none';
+  document.getElementById('setup').style.display='block';
+  document.getElementById('inRepo').value=cfg().repo;
+  document.getElementById('subline').textContent='';
+}
+document.getElementById('btnSetup').onclick=()=>{
+  const t=document.getElementById('inTok').value.trim(),r=document.getElementById('inRepo').value.trim()||DEFAULT_REPO;
+  if(!t){toast('토큰을 넣어 주세요');return;}
+  lsSet(LS.tok,t);lsSet(LS.repo,r);document.getElementById('inTok').value='';loadAll(true);
+};
+document.getElementById('lnkReset').onclick=e=>{e.preventDefault();if(confirm('이 휴대폰에 저장된 토큰을 지우고 다시 설정할까요?')){lsSet(LS.tok,'');showSetup();}};
+document.getElementById('btnReload').onclick=()=>loadAll(false);
+document.getElementById('btnSave').onclick=save;
+document.getElementById('btnUndo').onclick=()=>{if(!BASE)return;for(const k in BASE)D[k]=clone(BASE[k]);render();};
+window.addEventListener('beforeunload',e=>{if(dirty()){e.preventDefault();e.returnValue='';}});
+// 홈화면 앱으로 다시 열 때 최신 반영 (수정 중이면 건너뜀)
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&D&&!dirty())loadAll(true);});
+setInterval(async()=>{if(D&&document.visibilityState==='visible'){await pullLive();render();}},30000);
+loadAll(true);
+</script>
+</body>
+</html>
