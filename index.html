@@ -64,6 +64,16 @@ input.chg{border-color:#f59e0b}
 .pos{color:#4ade80}.neg{color:#f87171}.dim{color:#6b7280}.amber{color:#fbbf24}
 .prog{height:8px;background:#232736;border-radius:4px;overflow:hidden;margin:6px 0 2px}
 .prog i{display:block;height:100%;background:#f59e0b}
+.todo .ck{display:inline-flex;width:18px;height:18px;border:1.5px solid #4b5563;border-radius:5px;align-items:center;justify-content:center;font-size:12px;color:#fff;flex:none;align-self:center}
+.todo.done .ck{background:#16a34a;border-color:#16a34a}
+.todo.done .nm{color:#9ca3af}
+.todo .nm{max-width:none;flex:1;min-width:0}
+.todo .val{white-space:nowrap;margin-left:6px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{background:#232736;border:1px solid #3a3f52;border-radius:12px;padding:2px 8px;font-size:11.5px;color:#d1d5db}
+.chip a{color:#9ca3af;text-decoration:none;margin-left:3px}
+.fillrow{align-items:flex-end}
+.dacct{border-top:1px solid #2a2e3d;margin-top:6px}
 #savebar{position:fixed;left:0;right:0;bottom:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
   background:linear-gradient(transparent,#0f1117 28%);display:none;justify-content:center}
 #savebar.on{display:flex}
@@ -85,7 +95,7 @@ input.chg{border-color:#f59e0b}
 <div id="setup" class="box">
   <h3>처음 한 번만 설정</h3>
   <p>깃허브 토큰을 넣으면 이 휴대폰에만 저장됩니다. PC 앱과 같은 원본 데이터를 읽고 씁니다.<br>
-  PC에서 <b>deploy_github.bat</b>을 실행하면 나오는 QR을 찍으면 자동으로 채워집니다.</p>
+  저장소는 그대로 두고 토큰만 붙여넣으면 됩니다.</p>
   <div class="fld"><label>저장소 (소유자/이름)</label><input class="txt" id="inRepo" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
   <div class="fld"><label>깃허브 토큰 (github_pat_…)</label><input class="txt" id="inTok" type="password" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
   <button id="btnSetup">저장하고 시작</button>
@@ -113,7 +123,7 @@ input.chg{border-color:#f59e0b}
 <script>
 'use strict';
 // ── 설정 ──
-const DEFAULT_REPO='Cheong-ah-pediatric/portfolio-alert';
+const DEFAULT_REPO='winter0918-oss/portfolio-data';
 const LS={tok:'pf_token',repo:'pf_repo'};
 function lsGet(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
 function lsSet(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}
@@ -264,15 +274,162 @@ function renderHouse(){
   inp.onchange=()=>{h.cma_balance=num(inp.value);soft(inp);};
 }
 function ym(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+// ── 월 적립 계획 ─────────────────────────────────────────
+// 총액 → 계좌 분배(편집 가능 %) → 계좌 안에서 목표비중 부족분 우선 → 남으면 목표비중대로.
+// 홀드·목표0% 종목 제외, 집 자금 매수보류 계좌 제외. 달러 계좌(메리츠·삼성)는 달러로 표시.
+const DCA=()=>{D.dca=D.dca||{};const c=D.dca;if(!c.usd_accounts)c.usd_accounts=['메리츠','삼성증권'];c.plans=c.plans||{};c.split=c.split||{};if(!c.fixed)c.fixed={'삼성증권':10000000};return c;};
+const fixedOf=n=>{const f=(D.dca&&D.dca.fixed)||{};return n in f?+f[n]||0:null;};
+const isUsdAcct=n=>((D.dca&&D.dca.usd_accounts)||['메리츠','삼성증권']).includes(n);
+let DCA_M=ym();
+function usd(n,dec){if(n==null||!isFinite(n))return '-';const a=Math.abs(n),s=n<0?'-':'';
+  if(dec==null)dec=a>=1000?0:2;return s+'$'+a.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});}
+function moneyAcct(name,krw){return isUsdAcct(name)?usd(krw/fx()):won(krw);}
+function nat(id,n){return isUS(id)?usd(n):fmt(n)+'원';}
+function pausedFor(name,m){const h=(D.goals||{}).house||{};
+  return !!(h.buy_pause_until&&m<h.buy_pause_until.slice(0,7)&&!(h.buy_pause_except||[]).includes(name));}
+function dcaItems(a){return Object.entries(a.holdings||{}).filter(([id,h])=>(+h.target||0)>0&&!h.hold&&D.assets[id]);}
+function dcaAccounts(m){
+  return Object.entries(D.accounts).filter(([n,a])=>dcaItems(a).length).map(([n,a])=>({name:n,a,paused:pausedFor(n,m)}));
+}
+function defaultSplit(m){
+  const ac=dcaAccounts(m).filter(x=>!x.paused&&fixedOf(x.name)==null);const tot=ac.reduce((s,x)=>s+acctTotal(x.a),0)||1;
+  const o={};for(const x of ac)o[x.name]=Math.round(acctTotal(x.a)/tot*100);return o;
+}
+function splitFor(m){
+  const c=DCA(),ac=dcaAccounts(m).filter(x=>!x.paused&&fixedOf(x.name)==null),def=defaultSplit(m),o={};let s=0;
+  for(const x of ac){o[x.name]=x.name in c.split?+c.split[x.name]||0:def[x.name];s+=o[x.name];}
+  if(s<=0)return def;return o;
+}
+function allocAccount(a,C){
+  const items=dcaItems(a),A=acctTotal(a);
+  const need=items.map(([id,h])=>Math.max(0,(+h.target)*(A+C)-(valKRW(id,h)||0)));
+  const sn=need.reduce((s,x)=>s+x,0),st=items.reduce((s,[,h])=>s+(+h.target),0)||1;
+  return items.map(([id,h],i)=>[id,sn>=C?C*need[i]/sn:need[i]+(C-sn)*(+h.target)/st]);
+}
+function makePlan(m,total){
+  const c=DCA(),sp=splitFor(m),ss=Object.values(sp).reduce((s,x)=>s+x,0)||1,f=fx();
+  const old=c.plans[m]||{},plan={total_krw:total,fx:f,created:new Date().toISOString().slice(0,16).replace('T',' '),accounts:{},fills:old.fills||{}};
+  // 고정 금액 계좌(삼성 월 1,000만) 먼저 떼고, 나머지를 비율대로
+  let rest=total;const fixC={};
+  for(const x of dcaAccounts(m)){const fv=fixedOf(x.name);if(fv!=null&&!x.paused){fixC[x.name]=Math.min(fv,rest);rest-=fixC[x.name];}}
+  for(const x of dcaAccounts(m)){
+    const C=x.paused?0:x.name in fixC?fixC[x.name]:Math.round(rest*(sp[x.name]||0)/ss/1000)*1000;
+    const items={};
+    if(C>0)for(const[id,k]of allocAccount(x.a,C)){
+      const krw=Math.round(k/1000)*1000;if(krw<=0)continue;
+      items[id]={krw,native:isUS(id)?Math.round(krw/f*100)/100:krw};
+    }
+    const ks=Object.keys(items),diff=C-ks.reduce((t,k)=>t+items[k].krw,0);   // 반올림 오차는 가장 큰 종목에서 맞춤
+    if(ks.length&&diff){const big=ks.reduce((x,y)=>items[x].krw>=items[y].krw?x:y);const it=items[big];
+      it.krw+=diff;it.native=isUS(big)?Math.round(it.krw/f*100)/100:it.krw;}
+    plan.accounts[x.name]={krw:C,pct:total?Math.round(C/total*1000)/10:0,fixed:x.name in fixC,paused:x.paused,items};
+  }
+  c.plans[m]=plan;return plan;
+}
+function filled(plan,key){return (plan.fills[key]||[]).reduce((s,f)=>s+(+f.amt||0),0);}
 function renderDca(){
-  const c=D.dca,el=document.getElementById('dca');
-  if(!c||!c.account){el.innerHTML='';return;}
-  const m=ym(),done=(c.done||[]).includes(m),active=!c.active_from||m>=c.active_from;
-  el.innerHTML='<div class="box dca"><h3>월 적립 · '+esc(c.account)+'<span class="anote">월 '+won(+c.monthly_krw||0)+' · '+(c.split_days||1)+'회 분할</span></h3>'+
-    (active?'<div class="cashline"><span>'+m+' '+(done?'<b class="pos">완료</b>':'<b class="amber">미완료</b>')+'</span><span class="r"><button class="ghost sm" id="btnDca">'+(done?'완료 취소':'이번 달 완료 체크')+'</button></span></div>'
-      :'<div class="cashline"><span>⏳ '+esc(c.active_from)+'부터 시작</span></div>')+'</div>';
-  const b=document.getElementById('btnDca');
-  if(b)b.onclick=()=>{const s=new Set(c.done||[]);done?s.delete(m):s.add(m);c.done=[...s].sort();render();};
+  const el=document.getElementById('dca'),c=DCA(),m=DCA_M,plan=c.plans[m];
+  let h='<div class="box dca"><h3>월 적립 계획<span class="anote"></span>'+
+    '<input type="month" id="dcaM" value="'+m+'" style="width:165px;font-size:14px;padding:5px 7px;text-align:center"></h3>';
+  if(!plan){
+    const sp=splitFor(m);
+    h+='<div class="fld" style="margin:6px 0 10px"><label>이번 달 투자 가능 총액 (원)</label><input inputmode="numeric" id="dcaTotal" value="'+(c.last_total?fmt(c.last_total):'')+'" placeholder="예: 10,000,000"></div>'+
+      '<div class="cashline" style="margin-bottom:6px"><span>계좌 분배 (고정 금액을 먼저 떼고 나머지를 %로)</span><span class="r"><button class="ghost sm" id="dcaDef">현재 규모 비율로</button></span></div>';
+    for(const x of dcaAccounts(m)){
+      h+='<div class="cashline"><span style="flex:1">'+esc(x.name)+(isUsdAcct(x.name)?' <span class="badge" style="background:#1d4ed8">USD</span>':'')+'</span>'+
+        (x.paused?'<span class="r dim">매수보류 ~'+esc(((D.goals||{}).house||{}).buy_pause_until||'')+'</span>':
+        fixedOf(x.name)!=null?'<span class="dim" style="font-size:11px">고정 원</span><input inputmode="numeric" class="dcaFix" data-n="'+esc(x.name)+'" value="'+fmt(fixedOf(x.name))+'" style="width:120px">':
+        '<input inputmode="decimal" class="dcaSp" data-n="'+esc(x.name)+'" value="'+(sp[x.name]||0)+'" style="width:80px">')+'</div>';
+    }
+    h+='<div style="margin-top:10px"><button id="dcaGo" style="width:100%">분배 계산</button></div>'+
+      '<div class="dim" style="font-size:11px;margin-top:6px;line-height:1.5">계좌 안에서는 목표비중보다 모자란 종목부터 채우고, 남으면 목표비중대로 나눕니다. 홀드·목표 0% 종목은 제외.</div></div>';
+    el.innerHTML=h;bindDca();return;
+  }
+  // 계획 있음 → 체크리스트
+  let tgtSum=0,doneSum=0;
+  const body=[];
+  for(const[name,pa]of Object.entries(plan.accounts)){
+    const a=D.accounts[name];if(!a)continue;
+    if(pa.paused){body.push('<div class="hold"><div class="r1"><span class="nm">'+esc(name)+'</span><span class="val dim">매수보류</span></div></div>');continue;}
+    let rows='',aT=0,aF=0;
+    for(const[id,it]of Object.entries(pa.items)){
+      const as=D.assets[id]||{name:id},q=quote(id),p=q&&q.price,key=name+'|'+id,fl=filled(plan,key);
+      const rem=Math.max(0,it.native-fl),fx0=isUS(id)?plan.fx:1;
+      aT+=it.krw;aF+=Math.min(fl,it.native)*fx0;
+      const tq=p?Math.floor(it.native/p):null,rq=p?Math.floor(rem/p):null;
+      const done=p?rem<p:rem<=0;
+      const fills=(plan.fills[key]||[]).map((f,i)=>'<span class="chip">'+(+f.q).toLocaleString('ko-KR',{maximumFractionDigits:6})+'주 · '+nat(id,+f.amt)+
+        ' <a href="#" class="fdel" data-k="'+esc(key)+'" data-i="'+i+'">✕</a></span>').join('');
+      rows+='<div class="hold todo'+(done?' done':'')+'" data-k="'+esc(key)+'">'+
+        '<div class="r1"><span class="ck">'+(done?'✓':'')+'</span><span class="nm">'+esc(as.name)+'</span>'+
+          '<span class="val">'+(tq==null?'시세없음':tq+'주')+' <span class="dim" style="font-weight:400">('+nat(id,it.native)+')</span></span></div>'+
+        '<div class="r2"><span>현재가 '+(p?nat(id,p):'-')+'</span><span class="pl '+(done?'pos':'amber')+'">'+
+          (done?'완료':'남은 '+(rq==null?'-':rq+'주')+' ('+nat(id,rem)+')')+'</span></div>'+
+        (fills?'<div class="chips">'+fills+'</div>':'')+
+        '<div class="edit fillrow">'+
+          '<div class="fld"><label>산 주수</label><input inputmode="decimal" class="fq" placeholder="'+(rq||'')+'"></div>'+
+          '<div class="fld"><label>금액 ('+(isUS(id)?'$':'원')+')</label><input inputmode="decimal" class="fa" placeholder="자동"></div>'+
+          '<button class="sm fadd" style="align-self:flex-end;padding:9px 12px">기록</button></div></div>';
+    }
+    tgtSum+=aT;doneSum+=aF;
+    const usdA=isUsdAcct(name);
+    body.push('<div class="dacct"><div class="cashline" style="margin:8px 0 2px"><b style="color:#e5e7eb;font-size:13px">'+esc(name)+'</b>'+
+      (usdA?' <span class="badge" style="background:#1d4ed8">USD</span>':'')+
+      '<span class="r">'+(usdA?usd(pa.krw/plan.fx)+' <span class="dim">('+won(pa.krw)+')</span>':won(pa.krw))+' · '+(pa.fixed?'고정':pa.pct+'%')+'</span></div>'+
+      (rows||'<div class="dim" style="font-size:12px;padding:6px 0">배정 없음 (모든 종목이 목표비중 이상)</div>')+'</div>');
+  }
+  const prog=tgtSum?Math.min(doneSum/tgtSum,1):0;
+  h+='<div class="cashline" style="margin-top:4px"><span>총 '+won(plan.total_krw)+' · 환율 '+(+plan.fx).toFixed(1)+'</span><span class="r">진행 '+(prog*100).toFixed(0)+'%</span></div>'+
+    '<div class="prog"><i style="width:'+(prog*100).toFixed(1)+'%;background:#3b82f6"></i></div>'+
+    '<div class="dim" style="font-size:11px;margin:2px 0 4px">종목을 눌러 산 주수·금액을 기록하면 남은 목표가 줄어듭니다. 기록하면 보유 수량·매입금액에도 더해집니다.</div>'+
+    body.join('')+
+    '<div style="display:flex;gap:8px;margin-top:10px"><button class="ghost sm" id="dcaRe">총액 바꿔 다시 계산</button><button class="ghost sm" id="dcaDel">계획 삭제</button></div></div>';
+  el.innerHTML=h;bindDca();
+}
+function bindDca(){
+  const c=DCA(),$=id=>document.getElementById(id);
+  $('dcaM').onchange=e=>{DCA_M=e.target.value||ym();render();};
+  if($('dcaDef'))$('dcaDef').onclick=()=>{c.split=defaultSplit(DCA_M);render();};
+  for(const i of document.querySelectorAll('.dcaSp'))i.onchange=()=>{c.split[i.dataset.n]=num(i.value);soft(i);};
+  for(const i of document.querySelectorAll('.dcaFix'))i.onchange=()=>{c.fixed[i.dataset.n]=num(i.value);soft(i);};
+  if($('dcaGo'))$('dcaGo').onclick=async()=>{
+    const t=num($('dcaTotal').value);if(t<=0){toast('총액을 넣어 주세요');return;}
+    c.last_total=t;makePlan(DCA_M,t);render();await save();
+  };
+  if($('dcaRe'))$('dcaRe').onclick=async()=>{
+    const v=prompt('이번 달 총액 (원)',fmt(c.plans[DCA_M].total_krw));if(v==null)return;
+    const t=num(v);if(t<=0)return;c.last_total=t;makePlan(DCA_M,t);render();await save();
+  };
+  if($('dcaDel'))$('dcaDel').onclick=async()=>{
+    const p=c.plans[DCA_M],nf=Object.values(p.fills||{}).reduce((s,x)=>s+x.length,0);
+    if(!confirm('이 달 계획을 지울까요?'+(nf?'\n(매수 기록 '+nf+'건은 보유 수량에 이미 반영돼 있어 그대로 둡니다)':'')))return;
+    delete c.plans[DCA_M];render();await save();
+  };
+  for(const row of document.querySelectorAll('.todo')){
+    const key=row.dataset.k;
+    row.querySelector('.r1').onclick=()=>{OPEN.has('dca:'+key)?OPEN.delete('dca:'+key):OPEN.add('dca:'+key);row.classList.toggle('open');};
+    if(OPEN.has('dca:'+key))row.classList.add('open');
+    const fq=row.querySelector('.fq'),fa=row.querySelector('.fa');
+    const [name,id]=[key.slice(0,key.indexOf('|')),key.slice(key.indexOf('|')+1)];
+    fq.oninput=()=>{const q=quote(id),n=num(fq.value);fa.placeholder=q&&n?(isUS(id)?(n*q.price).toFixed(2):fmt(n*q.price)):'자동';};
+    row.querySelector('.fadd').onclick=async()=>{
+      const n=num(fq.value);if(n<=0){toast('산 주수를 넣어 주세요');return;}
+      const q=quote(id);let amt=num(fa.value);if(amt<=0){if(!q){toast('금액을 넣어 주세요');return;}amt=n*q.price;}
+      amt=isUS(id)?Math.round(amt*100)/100:Math.round(amt);
+      const plan=c.plans[DCA_M];(plan.fills[key]=plan.fills[key]||[]).push({q:n,amt,at:new Date().toISOString().slice(0,10)});
+      const h=D.accounts[name].holdings[id];h.qty=+((+h.qty||0)+n).toFixed(8);h.cost=+((+h.cost||0)+amt).toFixed(2);
+      render();await save();
+    };
+  }
+  for(const a of document.querySelectorAll('.fdel'))a.onclick=async e=>{
+    e.preventDefault();e.stopPropagation();
+    const key=a.dataset.k,i=+a.dataset.i,plan=c.plans[DCA_M],f=plan.fills[key][i];
+    if(!confirm('이 기록을 지울까요? 보유 수량·매입금액에서도 뺍니다.'))return;
+    const [name,id]=[key.slice(0,key.indexOf('|')),key.slice(key.indexOf('|')+1)];
+    const h=D.accounts[name].holdings[id];h.qty=+Math.max(0,(+h.qty||0)-f.q).toFixed(8);h.cost=+Math.max(0,(+h.cost||0)-f.amt).toFixed(2);
+    plan.fills[key].splice(i,1);if(!plan.fills[key].length)delete plan.fills[key];
+    render();await save();
+  };
 }
 // 입력 중에는 화면을 다시 그리지 않음 (아이폰에서 다음 칸을 누를 때 키보드가 닫히는 것 방지)
 function soft(inp){
@@ -288,7 +445,7 @@ function renderAccts(){
   const pause=((D.goals||{}).house||{});
   root.innerHTML='';
   for(const[name,a]of Object.entries(D.accounts)){
-    const at=acctTotal(a),cr=at?(+a.cash||0)/at:0;
+    const at=acctTotal(a),cr=at?(+a.cash||0)/at:0,UA=isUsdAcct(name);
     const div=document.createElement('div');div.className='box acct';
     let hh='';
     for(const[id,h]of Object.entries(a.holdings||{})){
@@ -302,7 +459,7 @@ function renderAccts(){
       const px=q?(as.market==='US'?'$'+q.price.toLocaleString('en-US',{maximumFractionDigits:2}):fmt(q.price)+'원')+(q.live?' ●':''):'시세없음';
       hh+='<div class="hold'+(OPEN.has(name+':'+id)?' open':'')+'" data-k="'+esc(name+':'+id)+'">'+
         '<div class="r1"><span class="nm">'+esc(as.name)+'</span>'+(h.hold?'<span class="badge" style="background:#4b5563">홀드</span>':'')+
-          '<span class="val">'+(v!=null?won(v):'-')+'</span></div>'+
+          '<span class="val">'+(v!=null?moneyAcct(name,v):'-')+'</span></div>'+
         '<div class="r2"><span>'+esc(px)+' · '+(+h.qty||0).toLocaleString('ko-KR',{maximumFractionDigits:6})+'주</span>'+
           '<span class="pl '+(pl==null?'dim':pl>=0?'pos':'neg')+'">'+(pl==null?'':pct(pl))+'</span></div>'+
         '<div class="r2"><span>비중 '+(w*100).toFixed(1)+'% / 목표 '+(tg*100).toFixed(0)+'%</span><span class="pl">'+badges+'</span></div>'+
@@ -315,10 +472,11 @@ function renderAccts(){
     }
     const paused=pause.buy_pause_until&&new Date()<new Date(pause.buy_pause_until)&&!(pause.buy_pause_except||[]).includes(name);
     const cashChg=bh[name]&&bh[name].cash!==a.cash?' chg':'';
-    div.innerHTML='<h3><span class="an">'+esc(name)+'</span><span class="anote">'+esc(a.note||'')+(paused?' · 매수보류':'')+'</span><span class="tot">'+won(at)+'</span></h3>'+
+    div.innerHTML='<h3><span class="an">'+esc(name)+'</span><span class="anote">'+esc(a.note||'')+(paused?' · 매수보류':'')+'</span><span class="tot">'+(UA?usd(at/fx())+' <span class="dim" style="font-weight:400;font-size:11px">'+won(at)+'</span>':won(at))+'</span></h3>'+
+      (UA?'<div class="cashline"><span class="badge" style="background:#1d4ed8">USD</span><span>달러 자산 · 환율 '+fx().toFixed(1)+'</span></div>':'')+
       '<div class="cashline"><span>'+esc(a.cash_label||'현금')+'</span><span class="r '+(cr<0.2?'amber':'')+'">현금 '+(cr*100).toFixed(1)+'%</span></div>'+
-      '<div class="fld" style="margin-bottom:4px"><input inputmode="numeric" class="cash'+cashChg+'" value="'+fmt(+a.cash||0)+'"></div>'+hh;
-    div.querySelector('input.cash').onchange=e=>{a.cash=num(e.target.value);soft(e.target);};
+      '<div class="fld" style="margin-bottom:4px">'+(UA?'<label>현금 ($)</label>':'')+'<input inputmode="decimal" class="cash'+cashChg+'" value="'+(UA?((+a.cash||0)/fx()).toFixed(2):fmt(+a.cash||0))+'"></div>'+hh;
+    div.querySelector('input.cash').onchange=e=>{const v=num(e.target.value);a.cash=UA?Math.round(v*fx()):v;soft(e.target);};
     for(const el of div.querySelectorAll('.hold')){
       const k=el.dataset.k,id=k.slice(name.length+1),h=a.holdings[id];
       el.querySelector('.r1').onclick=()=>{OPEN.has(k)?OPEN.delete(k):OPEN.add(k);el.classList.toggle('open');};
